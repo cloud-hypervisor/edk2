@@ -1,0 +1,60 @@
+name: Cloud Hypervisor edk2 release
+on: [create,push]
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Code checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get -y install uuid-dev iasl build-essential python3-distutils git libbrotli-dev
+      - name: Install nasm
+        run: |
+          wget https://www.nasm.us/pub/nasm/releasebuilds/2.15.05/nasm-2.15.05.tar.xz
+          tar -xf nasm-2.15.05.tar.xz
+          pushd nasm-2.15.05/
+          ./configure --prefix=/usr
+          make
+          sudo make install
+          popd
+      - name: Init submodules
+        run: git submodule update --init --recursive
+      - name: Create environment variables
+        run: source edksetup.sh
+      - name: Build BaseTools
+        run: make -C BaseTools
+      - name: Build CLOUDHV
+        run: OvmfPkg/build.sh -p OvmfPkg/CloudHv/CloudHvX64.dsc -a X64 -b DEBUG
+      - name: Create release
+        if: github.event_name == 'create' && github.event.ref_type == 'tag'
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: ${{ github.ref }}
+          draft: true
+      - name: Upload CLOUDHV.fd
+        if: github.event_name == 'create' && github.event.ref_type == 'tag'
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: Build/CloudHvX64/DEBUG_GCC5/FV/CLOUDHV.fd
+          asset_name: CLOUDHV.fd
+          asset_content_type: application/octet-stream
+
+
+
+
+
+
+
+
+
