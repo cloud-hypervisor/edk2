@@ -623,7 +623,7 @@
   gEfiMdeModulePkgTokenSpaceGuid.PcdSetNxForStack|FALSE
 
   # UefiCpuPkg PCDs related to initial AP bringup and general AP management.
-  gUefiCpuPkgTokenSpaceGuid.PcdCpuMaxLogicalProcessorNumber|64
+  gUefiCpuPkgTokenSpaceGuid.PcdCpuMaxLogicalProcessorNumber|256
   gUefiCpuPkgTokenSpaceGuid.PcdCpuBootLogicalProcessorNumber|0
 
   # Set memory encryption mask
