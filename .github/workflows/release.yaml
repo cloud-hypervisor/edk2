@@ -1,17 +1,17 @@
 name: Cloud Hypervisor edk2 release
-on: [create,push]
+on: [create, push]
 
 jobs:
-  build:
-    name: Build
-    runs-on: ubuntu-22.04
+  build-x64:
+    name: Build x86-64
+    runs-on: ubuntu-24.04
     steps:
       - name: Code checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - name: Install dependencies
-        run: sudo apt-get update && sudo apt-get -y install uuid-dev iasl build-essential python3-distutils git libbrotli-dev
+        run: sudo apt-get update && sudo apt-get -y install uuid-dev iasl build-essential git libbrotli-dev
       - name: Install nasm
         run: |
           wget https://www.nasm.us/pub/nasm/releasebuilds/2.15.05/nasm-2.15.05.tar.xz
@@ -23,38 +23,57 @@ jobs:
           popd
       - name: Init submodules
         run: git submodule update --init --recursive
-      - name: Create environment variables
-        run: source edksetup.sh
-      - name: Build BaseTools
-        run: make -C BaseTools
-      - name: Build CLOUDHV
-        run: OvmfPkg/build.sh -p OvmfPkg/CloudHv/CloudHvX64.dsc -a X64 -b DEBUG
+      - name: Build BaseTools and firmware
+        run: |
+          source edksetup.sh
+          make -C BaseTools
+          OvmfPkg/build.sh -p OvmfPkg/CloudHv/CloudHvX64.dsc -a X64 -b DEBUG
+      - name: Upload x86-64 artifact
+        if: github.event_name == 'create' && github.event.ref_type == 'tag'
+        uses: actions/upload-artifact@v4
+        with:
+          name: cloudhv-x64
+          path: Build/CloudHvX64/DEBUG_GCC5/FV/CLOUDHV.fd
+
+  build-aarch64:
+    name: Build AArch64
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Code checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get -y install uuid-dev iasl build-essential git libbrotli-dev gcc-aarch64-linux-gnu
+      - name: Init submodules
+        run: git submodule update --init --recursive
+      - name: Build BaseTools and firmware
+        run: |
+          source edksetup.sh
+          make -C BaseTools
+          export GCC5_AARCH64_PREFIX=aarch64-linux-gnu-
+          build -p ArmVirtPkg/ArmVirtCloudHv.dsc -a AARCH64 -t GCC5 -b DEBUG
+      - name: Upload AArch64 artifact
+        if: github.event_name == 'create' && github.event.ref_type == 'tag'
+        uses: actions/upload-artifact@v4
+        with:
+          name: cloudhv-aarch64
+          path: Build/ArmVirtCloudHv-AARCH64/DEBUG_GCC5/FV/CLOUDHV_EFI.fd
+
+  release:
+    name: Release
+    if: github.event_name == 'create' && github.event.ref_type == 'tag'
+    needs: [build-x64, build-aarch64]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
       - name: Create release
-        if: github.event_name == 'create' && github.event.ref_type == 'tag'
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.ref }}
-          release_name: ${{ github.ref }}
           draft: true
-      - name: Upload CLOUDHV.fd
-        if: github.event_name == 'create' && github.event.ref_type == 'tag'
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: Build/CloudHvX64/DEBUG_GCC5/FV/CLOUDHV.fd
-          asset_name: CLOUDHV.fd
-          asset_content_type: application/octet-stream
-
-
-
-
-
-
-
-
-
+          files: |
+            cloudhv-x64/CLOUDHV.fd
+            cloudhv-aarch64/CLOUDHV_EFI.fd
