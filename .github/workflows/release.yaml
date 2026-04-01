@@ -52,7 +52,8 @@ jobs:
           source edksetup.sh
           make -C BaseTools
           export GCC5_AARCH64_PREFIX=aarch64-linux-gnu-
-          build -p ArmVirtPkg/ArmVirtCloudHv.dsc -a AARCH64 -t GCC5 -b DEBUG
+          build -p ArmVirtPkg/ArmVirtCloudHv.dsc -a AARCH64 -t GCC5 -b DEBUG \
+            --pcd gEfiMdeModulePkgTokenSpaceGuid.PcdDxeNxMemoryProtectionPolicy=0xC000000000007FD1
       - name: Upload AArch64 artifact
         if: github.event_name == 'create' && github.event.ref_type == 'tag'
         uses: actions/upload-artifact@v4
