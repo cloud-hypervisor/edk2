@@ -33,7 +33,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: cloudhv-x64
-          path: Build/CloudHvX64/DEBUG_GCC5/FV/CLOUDHV.fd
+          path: Build/CloudHvX64/DEBUG_GCC/FV/CLOUDHV.fd
 
   build-aarch64:
     name: Build AArch64
@@ -51,15 +51,15 @@ jobs:
         run: |
           source edksetup.sh
           make -C BaseTools
-          export GCC5_AARCH64_PREFIX=aarch64-linux-gnu-
-          build -p ArmVirtPkg/ArmVirtCloudHv.dsc -a AARCH64 -t GCC5 -b DEBUG \
+          export GCC_AARCH64_PREFIX=aarch64-linux-gnu-
+          build -p ArmVirtPkg/ArmVirtCloudHv.dsc -a AARCH64 -t GCC -b DEBUG \
             --pcd gEfiMdeModulePkgTokenSpaceGuid.PcdDxeNxMemoryProtectionPolicy=0xC000000000007FD1
       - name: Upload AArch64 artifact
         if: github.event_name == 'create' && github.event.ref_type == 'tag'
         uses: actions/upload-artifact@v4
         with:
           name: cloudhv-aarch64
-          path: Build/ArmVirtCloudHv-AARCH64/DEBUG_GCC5/FV/CLOUDHV_EFI.fd
+          path: Build/ArmVirtCloudHv-AARCH64/DEBUG_GCC/FV/CLOUDHV_EFI.fd
 
   release:
     name: Release
