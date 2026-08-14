@@ -1,5 +1,5 @@
 name: Cloud Hypervisor edk2 release
-on: [create, push]
+on: push
 
 jobs:
   build-x64:
@@ -29,7 +29,7 @@ jobs:
           make -C BaseTools
           OvmfPkg/build.sh -p OvmfPkg/CloudHv/CloudHvX64.dsc -a X64 -b RELEASE
       - name: Upload x86-64 artifact
-        if: github.event_name == 'create' && github.event.ref_type == 'tag'
+        if: startsWith(github.ref, 'refs/tags/')
         uses: actions/upload-artifact@v4
         with:
           name: cloudhv-x64
@@ -55,7 +55,7 @@ jobs:
           build -p ArmVirtPkg/ArmVirtCloudHv.dsc -a AARCH64 -t GCC -b RELEASE \
             --pcd gEfiMdeModulePkgTokenSpaceGuid.PcdDxeNxMemoryProtectionPolicy=0xC000000000007FD1
       - name: Upload AArch64 artifact
-        if: github.event_name == 'create' && github.event.ref_type == 'tag'
+        if: startsWith(github.ref, 'refs/tags/')
         uses: actions/upload-artifact@v4
         with:
           name: cloudhv-aarch64
@@ -63,7 +63,7 @@ jobs:
 
   release:
     name: Release
-    if: github.event_name == 'create' && github.event.ref_type == 'tag'
+    if: startsWith(github.ref, 'refs/tags/')
     needs: [build-x64, build-aarch64]
     runs-on: ubuntu-latest
     permissions:
